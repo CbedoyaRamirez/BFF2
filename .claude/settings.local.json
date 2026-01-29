@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet --version:*)",
+      "Bash(dotnet new:*)",
+      "Bash(dotnet sln:*)",
+      "Bash(dotnet add:*)",
+      "Bash(dotnet build:*)",
+      "Bash(move BFF.Api Chubb.Bot.AI.Assistant.Api)",
+      "Bash(move BFF.Application Chubb.Bot.AI.Assistant.Application)",
+      "Bash(move BFF.Infrastructure Chubb.Bot.AI.Assistant.Infrastructure)",
+      "Bash(move BFF.Core Chubb.Bot.AI.Assistant.Core)",
+      "Bash(find:*)"
+    ]
+  }
+}
