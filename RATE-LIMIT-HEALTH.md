@@ -145,91 +145,203 @@ public class ChatController : ControllerBase
 
 ## 🏥 Health Checks
 
-El API proporciona tres endpoints de health checks para monitoreo:
+⚡ **Sistema Optimizado con Custom Health Checks**
 
-### 1. `/health` - Health Check Completo
+El BFF y todos los microservicios tienen health checks mejorados con información detallada, manejo robusto de errores y métricas de performance.
 
-Verifica el estado de **todos los servicios**:
-- ✅ API (self)
+> 📋 **Ver documentación completa:** [HEALTH-CHECKS-OPTIMIZATION.md](HEALTH-CHECKS-OPTIMIZATION.md)
+
+### Endpoints Disponibles
+
+Todos los servicios (BFF, ChatBot, FAQBot, SpeechService) proporcionan:
+
+- **`/health`** - Health check completo con información detallada
+- **`/health/ready`** - Readiness check (para Kubernetes)
+- **`/health/live`** - Liveness check (para Kubernetes)
+
+### BFF API - Health Check Completo
+
+Verifica el estado de **todos los servicios** usando custom health check:
+- ✅ Self (BFF API)
 - ✅ ChatBot Service
 - ✅ FAQBot Service
 - ✅ SpeechService
+
+**Características:**
+- ✅ Timeout de 5 segundos por servicio
+- ✅ Detección de servicios degradados (response time > 1s)
+- ✅ Manejo robusto de errores y timeouts
+- ✅ Información detallada de cada servicio
+- ✅ Parsing de respuestas de microservicios
 
 **Ejemplo de Respuesta:**
 
 ```json
 {
   "status": "Healthy",
-  "totalDuration": "00:00:01.234",
+  "totalDuration": "00:00:00.456",
   "entries": {
     "self": {
       "status": "Healthy",
-      "description": "API is running",
-      "duration": "00:00:00.001"
+      "description": "BFF API is running",
+      "duration": "00:00:00.001",
+      "data": {
+        "uptime": "02:15:30",
+        "memoryUsageMB": 125
+      }
     },
     "chatbot": {
       "status": "Healthy",
-      "description": "ChatBot service is available",
+      "description": "ChatBot is responding normally",
       "duration": "00:00:00.123",
       "data": {
+        "url": "http://localhost:5266/health",
+        "service": "ChatBot",
         "responseTime": "123ms",
-        "statusCode": 200
+        "statusCode": 200,
+        "serviceVersion": "1.0.0",
+        "serviceStatus": "Healthy",
+        "serviceChecks": "self: Healthy, memory: Healthy, uptime: Healthy"
       }
     },
     "faqbot": {
       "status": "Degraded",
-      "description": "FAQBot service is slow",
-      "duration": "00:00:01.500",
+      "description": "FAQBot response time is elevated (1234ms)",
+      "duration": "00:00:01.234",
       "data": {
-        "responseTime": "1500ms",
-        "statusCode": 200
+        "url": "http://localhost:5267/health",
+        "service": "FAQBot",
+        "responseTime": "1234ms",
+        "statusCode": 200,
+        "serviceVersion": "1.0.0"
       }
     },
     "speechservice": {
       "status": "Unhealthy",
-      "description": "SpeechService is unavailable",
+      "description": "SpeechService is unavailable: No connection could be made",
       "duration": "00:00:05.000",
-      "exception": "Connection refused"
+      "data": {
+        "url": "http://localhost:7001/health",
+        "service": "SpeechService",
+        "responseTime": "5000ms (timeout)",
+        "error": "No connection could be made",
+        "errorType": "HttpRequestException"
+      }
     }
   }
 }
 ```
 
-### 2. `/health/ready` - Readiness Check
+### Microservicios - Health Check Detallado
 
-Verifica si el API está **listo para recibir tráfico**.
+Cada microservicio proporciona información sobre:
 
-Verifica:
-- ✅ API (self)
+**Checks Incluidos:**
+- ✅ **Self** - Estado del servicio
+- ✅ **Memory** - Uso de memoria y colecciones de GC
+- ✅ **Uptime** - Tiempo de ejecución
 
-**Uso:** Kubernetes readiness probe
+**Ejemplo de Respuesta de ChatBot:**
 
-### 3. `/health/live` - Liveness Check
-
-Verifica si el API está **vivo** (básico).
-
-**Uso:** Kubernetes liveness probe
+```json
+{
+  "status": "Healthy",
+  "service": "ChatBot",
+  "version": "1.0.0",
+  "timestamp": "2026-02-03T12:00:00Z",
+  "checks": [
+    {
+      "name": "self",
+      "status": "Healthy",
+      "description": "ChatBot API is running",
+      "duration": 0.123,
+      "data": {}
+    },
+    {
+      "name": "memory",
+      "status": "Healthy",
+      "description": "Memory usage is normal",
+      "duration": 0.045,
+      "data": {
+        "allocatedMB": 128,
+        "gen0Collections": 5,
+        "gen1Collections": 2,
+        "gen2Collections": 0
+      }
+    },
+    {
+      "name": "uptime",
+      "status": "Healthy",
+      "description": "Service is running",
+      "duration": 0.012,
+      "data": {
+        "uptime": "02:15:30",
+        "startTime": "2026-02-03T09:44:30Z"
+      }
+    }
+  ]
+}
+```
 
 ### Estados de Health Check
 
-| Estado | Código HTTP | Descripción |
-|--------|-------------|-------------|
-| **Healthy** | 200 | Todo funciona correctamente |
-| **Degraded** | 200 | Funciona pero con problemas menores |
-| **Unhealthy** | 503 | Servicio no disponible |
+| Estado | HTTP Code | Descripción | Cuándo Ocurre |
+|--------|-----------|-------------|---------------|
+| **Healthy** | 200 | Todo funciona correctamente | Response time < 1s, todos los checks pasan |
+| **Degraded** | 200 | Funciona pero con issues | Response time 1-3s, memoria alta (>500MB) |
+| **Unhealthy** | 503 | Servicio no disponible | Timeout (>5s), error de conexión, status ≠ 200 |
 
-### Configuración en Código
+### Custom Health Check - HttpEndpointHealthCheck
+
+El BFF usa un custom health check optimizado para verificar microservicios:
+
+**Características:**
+- ✅ Timeout explícito de 5 segundos
+- ✅ Captura de todas las excepciones (HttpRequestException, OperationCanceledException, etc.)
+- ✅ Métricas de performance (response time, status code)
+- ✅ Parsing de respuestas JSON de microservicios
+- ✅ Detección automática de servicios degradados
+- ✅ Información detallada de errores para debugging
+
+**Lógica de Estado:**
+
+```csharp
+// Unhealthy
+- Status code != 200
+- Timeout (> 5 segundos)
+- HttpRequestException (servicio no disponible)
+
+// Degraded
+- Response time > 3 segundos (muy lento)
+- Response time > 1 segundo (lento)
+
+// Healthy
+- Status code = 200
+- Response time < 1 segundo
+```
+
+### Configuración en Código (BFF)
 
 ```csharp
 // Program.cs
 builder.Services.AddHealthChecks()
-    .AddCheck("self", () => HealthCheckResult.Healthy("API is running"), tags: new[] { "ready" })
-    .AddUrlGroup(
-        new Uri($"{chatBotBaseUrl}/health"),
-        name: "chatbot",
+    .AddCheck("self", () =>
+    {
+        var process = Process.GetCurrentProcess();
+        var uptime = DateTime.UtcNow - process.StartTime.ToUniversalTime();
+        var memoryMB = process.WorkingSet64 / 1024 / 1024;
+
+        return HealthCheckResult.Healthy("BFF API is running", data: new Dictionary<string, object>
+        {
+            { "uptime", uptime.ToString() },
+            { "memoryUsageMB", memoryMB }
+        });
+    }, tags: new[] { "ready", "live" })
+    .AddTypeActivatedCheck<HttpEndpointHealthCheck>(
+        "chatbot",
         failureStatus: HealthStatus.Degraded,
         tags: new[] { "external", "services" },
-        timeout: TimeSpan.FromSeconds(5))
+        args: new object[] { $"{chatBotUrl}/health", "ChatBot" })
     .AddUrlGroup(
         new Uri($"{faqBotBaseUrl}/health"),
         name: "faqbot",
@@ -400,9 +512,83 @@ done
 
 ### Testing Health Checks
 
+#### Opción 1: Script Automatizado (PowerShell) ⭐ RECOMENDADO
+
+Usa el script `test-health-checks.ps1` que verifica todos los servicios:
+
+```powershell
+.\test-health-checks.ps1
+```
+
+**Características:**
+- ✅ Verifica BFF, ChatBot, FAQBot y SpeechService
+- ✅ Muestra estado con colores (Verde=Healthy, Amarillo=Degraded, Rojo=Unhealthy)
+- ✅ Captura response time de cada servicio
+- ✅ Muestra checks individuales de cada microservicio
+- ✅ Muestra resumen con tabla de resultados
+- ✅ Maneja errores cuando servicios no están disponibles
+
+**Salida Ejemplo:**
+```
+==========================================
+  HEALTH CHECK - TODOS LOS SERVICIOS
+==========================================
+
+Verificando BFF API...
+  ✓ Status: Healthy
+  ⏱ Response Time: 234ms
+  External Services:
+    ✓ chatbot: Healthy
+       Response Time: 123ms
+    ⚠ faqbot: Degraded
+       Response Time: 1234ms
+    ✗ speechservice: Unhealthy
+
+Verificando ChatBot...
+  ✓ Status: Healthy
+  ⏱ Response Time: 123ms
+  📦 Service: ChatBot
+  🏷 Version: 1.0.0
+  Checks:
+    ✓ self: Healthy
+    ✓ memory: Healthy
+    ✓ uptime: Healthy
+
+==========================================
+  RESUMEN
+==========================================
+Total Services:      4
+✓ Healthy:           2
+⚠ Degraded:          1
+✗ Unavailable:       1
+```
+
+#### Opción 2: Archivo .http (VS Code / Visual Studio)
+
+Usa el archivo `test-health-checks.http` incluido en el proyecto:
+
+```http
+### BFF Complete Health Check
+GET http://localhost:5016/health
+
+### ChatBot Complete Health Check
+GET http://localhost:5266/health
+
+### FAQBot Complete Health Check
+GET http://localhost:5267/health
+
+### SpeechService Complete Health Check
+GET http://localhost:7001/health
+```
+
+#### Opción 3: cURL
+
 ```bash
-# Health check completo
-curl http://localhost:5016/health
+# Health check completo BFF
+curl http://localhost:5016/health | jq
+
+# Health check completo ChatBot
+curl http://localhost:5266/health | jq
 
 # Readiness check
 curl http://localhost:5016/health/ready

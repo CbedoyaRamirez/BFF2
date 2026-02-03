@@ -260,29 +260,47 @@ builder.Services.AddHttpClient<ISpeechClient, SpeechClient>(client =>
     circuitBreakerDuration: httpClientConfig.GetValue<int>("SpeechService:CircuitBreakerDurationSeconds", 30),
     timeoutSeconds: httpClientConfig.GetValue<int>("SpeechService:TimeoutSeconds", 30)));
 
-// Health Checks
+// Health Checks mejorados
+var chatBotBaseUrl = httpClientConfig.GetValue<string>("ChatBot:BaseUrl") ?? "http://localhost:5266";
+var faqBotBaseUrl = httpClientConfig.GetValue<string>("FAQBot:BaseUrl") ?? "http://localhost:5267";
+var speechServiceBaseUrl = httpClientConfig.GetValue<string>("SpeechService:BaseUrl") ?? "http://localhost:7001";
+
 builder.Services.AddHealthChecks()
+    // Self check
+    .AddCheck("self", () =>
+    {
+        var process = System.Diagnostics.Process.GetCurrentProcess();
+        var uptime = DateTime.UtcNow - process.StartTime.ToUniversalTime();
+        var memoryMB = process.WorkingSet64 / 1024 / 1024;
+
+        var data = new Dictionary<string, object>
+        {
+            { "uptime", uptime.ToString() },
+            { "memoryUsageMB", memoryMB }
+        };
+
+        return HealthCheckResult.Healthy("BFF API is running", data);
+    }, tags: new[] { "ready", "live" })
     // Redis Health Check - COMENTADO TEMPORALMENTE
     // .AddCheck<RedisHealthCheck>("redis", tags: new[] { "db", "redis", "ready" })
-    .AddCheck("self", () => HealthCheckResult.Healthy("API is running"), tags: new[] { "ready" })
-    .AddUrlGroup(
-        new Uri($"{httpClientConfig.GetValue<string>("ChatBot:BaseUrl") ?? "http://localhost:5266"}/health"),
-        name: "chatbot",
+    // ChatBot Health Check con custom implementation
+    .AddTypeActivatedCheck<HttpEndpointHealthCheck>(
+        "chatbot",
         failureStatus: HealthStatus.Degraded,
         tags: new[] { "external", "services" },
-        timeout: TimeSpan.FromSeconds(5))
-    .AddUrlGroup(
-        new Uri($"{httpClientConfig.GetValue<string>("FAQBot:BaseUrl") ?? "http://localhost:5267"}/health"),
-        name: "faqbot",
+        args: new object[] { $"{chatBotBaseUrl}/health", "ChatBot" })
+    // FAQBot Health Check
+    .AddTypeActivatedCheck<HttpEndpointHealthCheck>(
+        "faqbot",
         failureStatus: HealthStatus.Degraded,
         tags: new[] { "external", "services" },
-        timeout: TimeSpan.FromSeconds(5))
-    .AddUrlGroup(
-        new Uri($"{httpClientConfig.GetValue<string>("SpeechService:BaseUrl") ?? "http://localhost:7001"}/health"),
-        name: "speechservice",
+        args: new object[] { $"{faqBotBaseUrl}/health", "FAQBot" })
+    // SpeechService Health Check
+    .AddTypeActivatedCheck<HttpEndpointHealthCheck>(
+        "speechservice",
         failureStatus: HealthStatus.Degraded,
         tags: new[] { "external", "services" },
-        timeout: TimeSpan.FromSeconds(5));
+        args: new object[] { $"{speechServiceBaseUrl}/health", "SpeechService" });
 
 var app = builder.Build();
 

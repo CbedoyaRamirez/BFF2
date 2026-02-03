@@ -1,0 +1,75 @@
+### ============================================
+### HEALTH CHECK TESTS - TODOS LOS SERVICIOS
+### ============================================
+### Usa REST Client extension en VS Code para ejecutar
+
+### ========== BFF API ==========
+
+### BFF - Complete Health Check
+GET http://localhost:5016/health
+Accept: application/json
+
+### BFF - Readiness Check
+GET http://localhost:5016/health/ready
+Accept: application/json
+
+### BFF - Liveness Check
+GET http://localhost:5016/health/live
+Accept: application/json
+
+### ========== CHATBOT ==========
+
+### ChatBot - Complete Health Check
+GET http://localhost:5266/health
+Accept: application/json
+
+### ChatBot - Readiness Check
+GET http://localhost:5266/health/ready
+Accept: application/json
+
+### ChatBot - Liveness Check
+GET http://localhost:5266/health/live
+Accept: application/json
+
+### ========== FAQBOT ==========
+
+### FAQBot - Complete Health Check
+GET http://localhost:5267/health
+Accept: application/json
+
+### FAQBot - Readiness Check
+GET http://localhost:5267/health/ready
+Accept: application/json
+
+### FAQBot - Liveness Check
+GET http://localhost:5267/health/live
+Accept: application/json
+
+### ========== SPEECHSERVICE ==========
+
+### SpeechService - Complete Health Check
+GET http://localhost:7001/health
+Accept: application/json
+
+### SpeechService - Readiness Check
+GET http://localhost:7001/health/ready
+Accept: application/json
+
+### SpeechService - Liveness Check
+GET http://localhost:7001/health/live
+Accept: application/json
+
+### ========== VERIFICACIÓN RÁPIDA ==========
+
+### Verificar todos los servicios en secuencia (ejecutar manualmente uno por uno)
+### 1. BFF
+GET http://localhost:5016/health
+
+### 2. ChatBot
+GET http://localhost:5266/health
+
+### 3. FAQBot
+GET http://localhost:5267/health
+
+### 4. SpeechService
+GET http://localhost:7001/health
