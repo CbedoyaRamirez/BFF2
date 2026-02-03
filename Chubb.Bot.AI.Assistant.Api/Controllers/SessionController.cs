@@ -1,3 +1,5 @@
+// COMENTADO TEMPORALMENTE - REQUIERE REDIS
+/*
 using Chubb.Bot.AI.Assistant.Application.DTOs.Common;
 using Chubb.Bot.AI.Assistant.Core.Models;
 using Chubb.Bot.AI.Assistant.Infrastructure.Services.Interfaces;
@@ -143,3 +145,4 @@ public class SessionController : ControllerBase
 public record CreateSessionRequest(string UserId, Dictionary<string, string>? Metadata);
 public record ExtendSessionRequest(int AdditionalMinutes);
 public record SessionValidationResponse(string SessionId, bool IsValid);
+*/

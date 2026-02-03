@@ -110,7 +110,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
-// Redis
+// Redis - COMENTADO TEMPORALMENTE
+/*
 var redisConnectionString = builder.Configuration["RedisSettings:ConnectionString"] ?? "localhost:6379";
 RedisConnectionFactory.Initialize(redisConnectionString);
 
@@ -119,8 +120,10 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.Configuration = redisConnectionString;
     options.InstanceName = builder.Configuration["RedisSettings:InstanceName"] ?? "BFF:";
 });
+*/
 
-// Session Management con Redis
+// Session Management con Redis - COMENTADO TEMPORALMENTE
+/*
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(builder.Configuration.GetValue<int>("RedisSettings:DefaultTTLMinutes", 30));
@@ -129,6 +132,7 @@ builder.Services.AddSession(options =>
     options.Cookie.SameSite = SameSiteMode.Strict;
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
 });
+*/
 
 // Rate Limiting
 builder.Services.AddMemoryCache();
@@ -145,8 +149,8 @@ builder.Services.AddValidatorsFromAssemblyContaining<ChatRequestValidator>();
 // HttpContextAccessor (needed for CorrelationIdDelegatingHandler)
 builder.Services.AddHttpContextAccessor();
 
-// Session Service
-builder.Services.AddScoped<Chubb.Bot.AI.Assistant.Infrastructure.Services.Interfaces.ISessionService, Chubb.Bot.AI.Assistant.Infrastructure.Services.SessionService>();
+// Session Service - COMENTADO TEMPORALMENTE (requiere Redis)
+// builder.Services.AddScoped<Chubb.Bot.AI.Assistant.Infrastructure.Services.Interfaces.ISessionService, Chubb.Bot.AI.Assistant.Infrastructure.Services.SessionService>();
 
 // Delegating Handlers
 builder.Services.AddTransient<CorrelationIdDelegatingHandler>();
@@ -199,7 +203,8 @@ builder.Services.AddHttpClient<ISpeechClient, SpeechClient>(client =>
 
 // Health Checks
 builder.Services.AddHealthChecks()
-    .AddCheck<RedisHealthCheck>("redis", tags: new[] { "db", "redis", "ready" })
+    // Redis Health Check - COMENTADO TEMPORALMENTE
+    // .AddCheck<RedisHealthCheck>("redis", tags: new[] { "db", "redis", "ready" })
     .AddCheck("self", () => HealthCheckResult.Healthy("API is running"), tags: new[] { "ready" })
     .AddUrlGroup(
         new Uri($"{httpClientConfig.GetValue<string>("ChatBot:BaseUrl") ?? "http://localhost:5266"}/health"),
@@ -262,8 +267,8 @@ app.UseHttpsRedirection();
 
 app.UseCors();
 
-// Session Management
-app.UseSession();
+// Session Management - COMENTADO TEMPORALMENTE (requiere Redis)
+// app.UseSession();
 
 app.UseAuthentication();
 app.UseAuthorization();
