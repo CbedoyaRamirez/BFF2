@@ -10,7 +10,8 @@
       "Bash(move BFF.Application Chubb.Bot.AI.Assistant.Application)",
       "Bash(move BFF.Infrastructure Chubb.Bot.AI.Assistant.Infrastructure)",
       "Bash(move BFF.Core Chubb.Bot.AI.Assistant.Core)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(del \"C:\\\\DocumentosCarlosBedoya\\\\Programacion\\\\Chubb\\\\BFF2\\\\Chubb.Bot.AI.Assistant.Api\\\\Controllers\\\\SessionController.cs\")"
     ]
   }
 }

@@ -1,6 +1,4 @@
 using Chubb.Bot.AI.Assistant.Api.Middleware;
-using Chubb.Bot.AI.Assistant.Application.Interfaces;
-using Chubb.Bot.AI.Assistant.Application.Services;
 using Chubb.Bot.AI.Assistant.Application.Validators;
 using Chubb.Bot.AI.Assistant.Infrastructure.HealthChecks;
 using Chubb.Bot.AI.Assistant.Infrastructure.HttpClients;
@@ -107,9 +105,6 @@ builder.Services.AddStackExchangeRedisCache(options =>
 // FluentValidation
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<ChatRequestValidator>();
-
-// Application Services
-builder.Services.AddScoped<ISessionService, SessionService>();
 
 // HttpContextAccessor (needed for CorrelationIdDelegatingHandler)
 builder.Services.AddHttpContextAccessor();
