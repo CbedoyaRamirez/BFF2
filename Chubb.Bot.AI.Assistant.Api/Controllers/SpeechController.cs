@@ -42,8 +42,7 @@ public class SpeechController : ControllerBase
     /// <summary>
     /// Convierte voz a texto (Speech-to-Text)
     /// </summary>
-    /// <param name="audioFile">Archivo de audio en formato WAV</param>
-    /// <param name="sessionId">ID de sesión (opcional)</param>
+    /// <param name="request">Solicitud con audio en Base64</param>
     /// <param name="cancellationToken">Token de cancelación</param>
     /// <returns>Texto reconocido del audio</returns>
     [HttpPost("stt")]
@@ -51,33 +50,42 @@ public class SpeechController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
     public async Task<ActionResult<SpeechToTextResponse>> SpeechToText(
-        IFormFile audioFile,
-        [FromQuery] string? sessionId,
+        [FromBody] SpeechToTextRequest request,
         CancellationToken cancellationToken)
     {
-        if (audioFile == null || audioFile.Length == 0)
+        _logger.LogInformation(
+            "Converting speech to text. Language: {Language}, Format: {Format}",
+            request.Language,
+            request.AudioFormat);
+
+        try
         {
-            return BadRequest("Audio file is required");
+            // Convertir de Base64 a bytes
+            var audioData = Convert.FromBase64String(request.AudioBase64);
+
+            // Llamar al servicio de speech
+            var text = await _speechClient.RecognizeSpeechAsync(audioData, cancellationToken);
+
+            var response = new SpeechToTextResponse
+            {
+                Text = text,
+                Success = true,
+                Confidence = null, // El servicio puede proveer esto
+                DurationSeconds = null, // El servicio puede proveer esto
+                DetectedLanguage = request.Language
+            };
+
+            return Ok(response);
         }
-
-        _logger.LogInformation("Converting speech to text for session: {SessionId}", sessionId);
-
-        byte[] audioData;
-        using (var memoryStream = new MemoryStream())
+        catch (FormatException ex)
         {
-            await audioFile.CopyToAsync(memoryStream, cancellationToken);
-            audioData = memoryStream.ToArray();
+            _logger.LogError(ex, "Invalid Base64 audio data");
+            return BadRequest(new SpeechToTextResponse
+            {
+                Text = string.Empty,
+                Success = false,
+                ErrorMessage = "Invalid Base64 audio format"
+            });
         }
-
-        var text = await _speechClient.RecognizeSpeechAsync(audioData, cancellationToken);
-
-        var response = new SpeechToTextResponse
-        {
-            Text = text,
-            SessionId = sessionId,
-            Timestamp = DateTime.UtcNow
-        };
-
-        return Ok(response);
     }
 }

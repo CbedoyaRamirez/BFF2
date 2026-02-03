@@ -3,8 +3,8 @@ using Chubb.Bot.AI.Assistant.Application.DTOs.Responses;
 
 namespace Chubb.Bot.AI.Assistant.Infrastructure.HttpClients.Interfaces;
 
-public interface IFAQBotClient
+public interface IChatBotClient
 {
-    Task<FAQResponse> GetAnswerAsync(FAQRequest request, CancellationToken cancellationToken = default);
+    Task<ChatResponse> SendMessageAsync(ChatRequest request, CancellationToken cancellationToken = default);
     Task<bool> HealthCheckAsync(CancellationToken cancellationToken = default);
 }

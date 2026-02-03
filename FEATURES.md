@@ -157,7 +157,7 @@ Task ExtendSessionAsync(string sessionId, int additionalMinutes)
 
 ### Servicios Monitoreados
 1. **Redis**: Latencia, conexiones activas, estadísticas
-2. **QuoteBot**: Disponibilidad y tiempo de respuesta
+2. **ChatBot**: Disponibilidad y tiempo de respuesta
 3. **FAQBot**: Disponibilidad y tiempo de respuesta
 4. **SpeechService**: Disponibilidad y tiempo de respuesta
 

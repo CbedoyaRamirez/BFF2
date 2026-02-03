@@ -155,19 +155,19 @@ builder.Services.AddTransient<LoggingDelegatingHandler>();
 // HTTP Clients with Polly
 var httpClientConfig = builder.Configuration.GetSection("HttpClients");
 
-// QuoteBot Client
-builder.Services.AddHttpClient<IQuoteBotClient, QuoteBotClient>(client =>
+// ChatBot Client
+builder.Services.AddHttpClient<IChatBotClient, ChatBotClient>(client =>
 {
-    var baseUrl = httpClientConfig.GetValue<string>("QuoteBot:BaseUrl") ?? "http://localhost:5266";
+    var baseUrl = httpClientConfig.GetValue<string>("ChatBot:BaseUrl") ?? "http://localhost:5266";
     client.BaseAddress = new Uri(baseUrl);
 })
 .AddHttpMessageHandler<CorrelationIdDelegatingHandler>()
 .AddHttpMessageHandler<LoggingDelegatingHandler>()
 .AddPolicyHandler(PollyPolicies.GetCombinedPolicy(
-    retryCount: httpClientConfig.GetValue<int>("QuoteBot:RetryCount", 3),
-    circuitBreakerThreshold: httpClientConfig.GetValue<int>("QuoteBot:CircuitBreakerThreshold", 5),
-    circuitBreakerDuration: httpClientConfig.GetValue<int>("QuoteBot:CircuitBreakerDurationSeconds", 30),
-    timeoutSeconds: httpClientConfig.GetValue<int>("QuoteBot:TimeoutSeconds", 10)));
+    retryCount: httpClientConfig.GetValue<int>("ChatBot:RetryCount", 3),
+    circuitBreakerThreshold: httpClientConfig.GetValue<int>("ChatBot:CircuitBreakerThreshold", 5),
+    circuitBreakerDuration: httpClientConfig.GetValue<int>("ChatBot:CircuitBreakerDurationSeconds", 30),
+    timeoutSeconds: httpClientConfig.GetValue<int>("ChatBot:TimeoutSeconds", 10)));
 
 // FAQBot Client
 builder.Services.AddHttpClient<IFAQBotClient, FAQBotClient>(client =>
@@ -202,8 +202,8 @@ builder.Services.AddHealthChecks()
     .AddCheck<RedisHealthCheck>("redis", tags: new[] { "db", "redis", "ready" })
     .AddCheck("self", () => HealthCheckResult.Healthy("API is running"), tags: new[] { "ready" })
     .AddUrlGroup(
-        new Uri($"{httpClientConfig.GetValue<string>("QuoteBot:BaseUrl") ?? "http://localhost:5266"}/health"),
-        name: "quotebot",
+        new Uri($"{httpClientConfig.GetValue<string>("ChatBot:BaseUrl") ?? "http://localhost:5266"}/health"),
+        name: "chatbot",
         failureStatus: HealthStatus.Degraded,
         tags: new[] { "external", "services" },
         timeout: TimeSpan.FromSeconds(5))

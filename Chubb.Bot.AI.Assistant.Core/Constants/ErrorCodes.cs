@@ -18,10 +18,11 @@ public static class ErrorCodes
     public const string MESSAGE_SEND_FAILED = "BFF_3001";
 
     // External Service Errors (4000-4999)
-    public const string QUOTEBOT_UNAVAILABLE = "BFF_4000";
+    public const string CHATBOT_UNAVAILABLE = "BFF_4000";
     public const string FAQBOT_UNAVAILABLE = "BFF_4001";
     public const string SPEECH_SERVICE_UNAVAILABLE = "BFF_4002";
     public const string EXTERNAL_SERVICE_TIMEOUT = "BFF_4003";
+    public const string EXTERNAL_SERVICE_ERROR = "BFF_4004";
 
     // Redis/Cache Errors (5000-5999)
     public const string REDIS_CONNECTION_FAILED = "BFF_5000";

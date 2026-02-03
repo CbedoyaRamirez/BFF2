@@ -1,3 +1,4 @@
+using Chubb.Bot.AI.Assistant.Application.DTOs.Common;
 using Chubb.Bot.AI.Assistant.Application.DTOs.Requests;
 using Chubb.Bot.AI.Assistant.Application.DTOs.Responses;
 using Chubb.Bot.AI.Assistant.Infrastructure.HttpClients.Interfaces;
@@ -24,24 +25,25 @@ public class FAQController : ControllerBase
     /// <param name="request">Pregunta del usuario</param>
     /// <param name="cancellationToken">Token de cancelación</param>
     /// <returns>Respuesta a la pregunta</returns>
-    [HttpPost("answer")]
+    [HttpPost]
     [ProducesResponseType(typeof(FAQResponse), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status503ServiceUnavailable)]
     public async Task<ActionResult<FAQResponse>> GetAnswer(
         [FromBody] FAQRequest request,
         CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Getting FAQ answer for question: {Question}", request.Question);
+        _logger.LogInformation(
+            "Getting FAQ answer for bot {BotId}, session {SessionId}, category: {Category}",
+            request.BotId,
+            request.SessionId,
+            request.Category ?? "None");
 
-        var answer = await _faqBotClient.GetAnswerAsync(request.Question, cancellationToken);
+        var response = await _faqBotClient.GetAnswerAsync(request, cancellationToken);
 
-        var response = new FAQResponse
-        {
-            Answer = answer,
-            SessionId = request.SessionId,
-            Timestamp = DateTime.UtcNow
-        };
+        _logger.LogInformation(
+            "FAQ response received. Retrieved {ChunkCount} chunks",
+            response.RetrievedChunks);
 
         return Ok(response);
     }
