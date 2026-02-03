@@ -1,0 +1,39 @@
+### Test Rate Limiting - Health Check
+### Este endpoint debería permitir 60 requests por minuto según la configuración
+### Ejecuta este request múltiples veces rápidamente para probar el rate limit
+
+@host = http://localhost:5016
+
+### Request 1
+GET {{host}}/health
+
+### Request 2
+GET {{host}}/health
+
+### Request 3
+GET {{host}}/health
+
+### Request 4
+GET {{host}}/health
+
+### Request 5
+GET {{host}}/health
+
+### Request 6
+GET {{host}}/health
+
+### Request 7
+GET {{host}}/health
+
+### Request 8
+GET {{host}}/health
+
+### Request 9
+GET {{host}}/health
+
+### Request 10
+GET {{host}}/health
+
+### Test Rate Limit - Debería devolver 429 después de exceder el límite
+### Para probar: ejecuta este request más de 60 veces en 1 minuto
+GET {{host}}/health

@@ -11,7 +11,10 @@
       "Bash(move BFF.Infrastructure Chubb.Bot.AI.Assistant.Infrastructure)",
       "Bash(move BFF.Core Chubb.Bot.AI.Assistant.Core)",
       "Bash(find:*)",
-      "Bash(del \"C:\\\\DocumentosCarlosBedoya\\\\Programacion\\\\Chubb\\\\BFF2\\\\Chubb.Bot.AI.Assistant.Api\\\\Controllers\\\\SessionController.cs\")"
+      "Bash(del \"C:\\\\DocumentosCarlosBedoya\\\\Programacion\\\\Chubb\\\\BFF2\\\\Chubb.Bot.AI.Assistant.Api\\\\Controllers\\\\SessionController.cs\")",
+      "Bash(dir)",
+      "Bash(curl:*)",
+      "Bash(dotnet restore:*)"
     ]
   }
 }

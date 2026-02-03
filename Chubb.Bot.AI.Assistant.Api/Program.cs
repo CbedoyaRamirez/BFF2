@@ -1,4 +1,3 @@
-using AspNetCoreRateLimit;
 using Chubb.Bot.AI.Assistant.Api.Middleware;
 using Chubb.Bot.AI.Assistant.Application.Validators;
 using Chubb.Bot.AI.Assistant.Infrastructure.HealthChecks;
@@ -12,12 +11,14 @@ using FluentValidation.AspNetCore;
 using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using Serilog.Context;
 using System.Text;
+using System.Threading.RateLimiting;
 
 // Configurar Serilog desde appsettings.json
 Log.Logger = new LoggerConfiguration()
@@ -134,13 +135,71 @@ builder.Services.AddSession(options =>
 });
 */
 
-// Rate Limiting
-builder.Services.AddMemoryCache();
-builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimiting"));
-builder.Services.Configure<IpRateLimitPolicies>(builder.Configuration.GetSection("IpRateLimitPolicies"));
-builder.Services.Configure<ClientRateLimitOptions>(builder.Configuration.GetSection("ClientRateLimiting"));
-builder.Services.AddInMemoryRateLimiting();
-builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
+// Rate Limiting Nativo de .NET 8
+builder.Services.AddRateLimiter(options =>
+{
+    // Configurar rechazo con 429 Too Many Requests
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    // Política global - Fixed Window: 60 requests por minuto
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.User.Identity?.Name ?? httpContext.Request.Headers.Host.ToString(),
+            factory: partition => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 60,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0
+            }));
+
+    // Política "api" - Para endpoints de API: 100 requests por minuto
+    options.AddFixedWindowLimiter("api", options =>
+    {
+        options.PermitLimit = 100;
+        options.Window = TimeSpan.FromMinutes(1);
+        options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        options.QueueLimit = 0;
+    });
+
+    // Política "health" - Para health checks: 300 requests por minuto
+    options.AddFixedWindowLimiter("health", options =>
+    {
+        options.PermitLimit = 300;
+        options.Window = TimeSpan.FromMinutes(1);
+        options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        options.QueueLimit = 0;
+    });
+
+    // Política "strict" - Para operaciones críticas: 10 requests por minuto
+    options.AddFixedWindowLimiter("strict", options =>
+    {
+        options.PermitLimit = 10;
+        options.Window = TimeSpan.FromMinutes(1);
+        options.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        options.QueueLimit = 0;
+    });
+
+    // Respuesta personalizada cuando se excede el límite
+    options.OnRejected = async (context, token) =>
+    {
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        context.HttpContext.Response.ContentType = "application/json";
+
+        var retryAfter = context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfterValue)
+            ? retryAfterValue.TotalSeconds
+            : 60;
+
+        context.HttpContext.Response.Headers["Retry-After"] = retryAfter.ToString();
+
+        await context.HttpContext.Response.WriteAsJsonAsync(new
+        {
+            error = "Too Many Requests",
+            message = $"Rate limit exceeded. Please try again in {retryAfter} seconds.",
+            retryAfter = retryAfter
+        }, cancellationToken: token);
+    };
+});
 
 // FluentValidation
 builder.Services.AddFluentValidationAutoValidation();
@@ -250,8 +309,8 @@ app.UseSerilogRequestLogging(options =>
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseMiddleware<CorrelationIdMiddleware>();
 
-// Rate Limiting
-app.UseIpRateLimiting();
+// Rate Limiting Nativo
+app.UseRateLimiter();
 
 if (app.Environment.IsDevelopment())
 {
@@ -278,19 +337,19 @@ app.MapHealthChecks("/health", new HealthCheckOptions
 {
     Predicate = _ => true,
     ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
-});
+}).RequireRateLimiting("health");
 
 app.MapHealthChecks("/health/ready", new HealthCheckOptions
 {
     Predicate = check => check.Tags.Contains("ready"),
     ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
-});
+}).RequireRateLimiting("health");
 
 app.MapHealthChecks("/health/live", new HealthCheckOptions
 {
     Predicate = _ => false,
     ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
-});
+}).RequireRateLimiting("health");
 
 app.MapControllers();
 

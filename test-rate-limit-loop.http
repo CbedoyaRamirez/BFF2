@@ -1,0 +1,222 @@
+### ============================================
+### RATE LIMIT TEST - EJECUTAR EN LOOP
+### ============================================
+### Instrucciones:
+### 1. Asegúrate de que el API esté corriendo en http://localhost:5016
+### 2. Copia y pega este bloque completo 20 veces en el archivo
+### 3. Usa CTRL+SHIFT+P -> "Rest Client: Send All Requests in File"
+### 4. O ejecuta manualmente cada request haciendo click en "Send Request"
+
+@host = http://localhost:5016
+
+### Request 1
+GET {{host}}/health
+
+### Request 2
+GET {{host}}/health
+
+### Request 3
+GET {{host}}/health
+
+### Request 4
+GET {{host}}/health
+
+### Request 5
+GET {{host}}/health
+
+### Request 6
+GET {{host}}/health
+
+### Request 7
+GET {{host}}/health
+
+### Request 8
+GET {{host}}/health
+
+### Request 9
+GET {{host}}/health
+
+### Request 10
+GET {{host}}/health
+
+### Request 11
+GET {{host}}/health
+
+### Request 12
+GET {{host}}/health
+
+### Request 13
+GET {{host}}/health
+
+### Request 14
+GET {{host}}/health
+
+### Request 15
+GET {{host}}/health
+
+### Request 16
+GET {{host}}/health
+
+### Request 17
+GET {{host}}/health
+
+### Request 18
+GET {{host}}/health
+
+### Request 19
+GET {{host}}/health
+
+### Request 20
+GET {{host}}/health
+
+### Request 21
+GET {{host}}/health
+
+### Request 22
+GET {{host}}/health
+
+### Request 23
+GET {{host}}/health
+
+### Request 24
+GET {{host}}/health
+
+### Request 25
+GET {{host}}/health
+
+### Request 26
+GET {{host}}/health
+
+### Request 27
+GET {{host}}/health
+
+### Request 28
+GET {{host}}/health
+
+### Request 29
+GET {{host}}/health
+
+### Request 30
+GET {{host}}/health
+
+### Request 31
+GET {{host}}/health
+
+### Request 32
+GET {{host}}/health
+
+### Request 33
+GET {{host}}/health
+
+### Request 34
+GET {{host}}/health
+
+### Request 35
+GET {{host}}/health
+
+### Request 36
+GET {{host}}/health
+
+### Request 37
+GET {{host}}/health
+
+### Request 38
+GET {{host}}/health
+
+### Request 39
+GET {{host}}/health
+
+### Request 40
+GET {{host}}/health
+
+### Request 41
+GET {{host}}/health
+
+### Request 42
+GET {{host}}/health
+
+### Request 43
+GET {{host}}/health
+
+### Request 44
+GET {{host}}/health
+
+### Request 45
+GET {{host}}/health
+
+### Request 46
+GET {{host}}/health
+
+### Request 47
+GET {{host}}/health
+
+### Request 48
+GET {{host}}/health
+
+### Request 49
+GET {{host}}/health
+
+### Request 50
+GET {{host}}/health
+
+### Request 51
+GET {{host}}/health
+
+### Request 52
+GET {{host}}/health
+
+### Request 53
+GET {{host}}/health
+
+### Request 54
+GET {{host}}/health
+
+### Request 55
+GET {{host}}/health
+
+### Request 56
+GET {{host}}/health
+
+### Request 57
+GET {{host}}/health
+
+### Request 58
+GET {{host}}/health
+
+### Request 59
+GET {{host}}/health
+
+### Request 60
+GET {{host}}/health
+
+### ====== A PARTIR DE AQUÍ DEBERÍAS RECIBIR 429 ======
+
+### Request 61 - Debería fallar con 429
+GET {{host}}/health
+
+### Request 62 - Debería fallar con 429
+GET {{host}}/health
+
+### Request 63 - Debería fallar con 429
+GET {{host}}/health
+
+### Request 64 - Debería fallar con 429
+GET {{host}}/health
+
+### Request 65 - Debería fallar con 429
+GET {{host}}/health
+
+### Request 66 - Debería fallar con 429
+GET {{host}}/health
+
+### Request 67 - Debería fallar con 429
+GET {{host}}/health
+
+### Request 68 - Debería fallar con 429
+GET {{host}}/health
+
+### Request 69 - Debería fallar con 429
+GET {{host}}/health
+
+### Request 70 - Debería fallar con 429
+GET {{host}}/health

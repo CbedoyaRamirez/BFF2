@@ -1,0 +1,122 @@
+### ============================================
+### HEALTH CHECKS - BFF API
+### ============================================
+
+@host = http://localhost:5016
+
+### 1. Health Check Completo - Todos los servicios
+### Incluye: API (self), ChatBot, FAQBot, SpeechService
+GET {{host}}/health
+Accept: application/json
+
+### 2. Health Check - Ready (Readiness)
+### Verifica si la API está lista para recibir tráfico
+### Incluye: API (self) - Sin Redis porque está comentado
+GET {{host}}/health/ready
+Accept: application/json
+
+### 3. Health Check - Live (Liveness)
+### Verifica si la API está viva (básico)
+GET {{host}}/health/live
+Accept: application/json
+
+### ============================================
+### ENDPOINTS PRINCIPALES
+### ============================================
+
+### 4. Chat - Enviar mensaje al bot
+POST {{host}}/api/chat
+Content-Type: application/json
+
+{
+  "sessionId": "test-session-123",
+  "botId": "quote-auto",
+  "message": "Quiero cotizar un seguro de auto",
+  "metadata": {
+    "source": "web",
+    "device": "desktop"
+  }
+}
+
+### 5. FAQ - Consultar pregunta frecuente
+POST {{host}}/api/faq
+Content-Type: application/json
+
+{
+  "sessionId": "test-session-456",
+  "botId": "faq-bot",
+  "message": "¿Cuáles son los documentos necesarios?",
+  "category": "documentacion",
+  "topK": 5
+}
+
+### 6. Speech to Text - Convertir voz a texto
+POST {{host}}/api/speech/stt
+Content-Type: application/json
+
+{
+  "audioBase64": "SGVsbG8gV29ybGQ=",
+  "audioFormat": "wav",
+  "language": "es-ES",
+  "sampleRate": 16000
+}
+
+### 7. Text to Speech - Convertir texto a voz
+POST {{host}}/api/speech/tts
+Content-Type: application/json
+
+{
+  "text": "Hola, bienvenido al asistente virtual de Chubb",
+  "sessionId": "test-session-789"
+}
+
+### ============================================
+### SYSTEM INFO & CONFIGURATION
+### ============================================
+
+### 8. Información del Sistema
+GET {{host}}/api/system/info
+Accept: application/json
+
+### 9. Configuración de Rate Limiting
+GET {{host}}/api/system/rate-limit-config
+Accept: application/json
+
+### 10. Lista de Endpoints Disponibles
+GET {{host}}/api/system/endpoints
+Accept: application/json
+
+### ============================================
+### RATE LIMITING TEST
+### ============================================
+### Para probar rate limiting, ejecuta este request más de 60 veces en 1 minuto
+### Deberías recibir un 429 (Too Many Requests) después del límite
+
+### 11. Test Rate Limit (repetir rápidamente)
+GET {{host}}/health
+
+### ============================================
+### SESSION ENDPOINTS (COMENTADOS - REQUIEREN REDIS)
+### ============================================
+### Estos endpoints están comentados temporalmente
+
+### 12. Crear Sesión (COMENTADO - Requiere Redis)
+# POST {{host}}/api/session
+# Content-Type: application/json
+#
+# {
+#   "userId": "user-123",
+#   "metadata": {
+#     "device": "mobile",
+#     "app_version": "1.0.0"
+#   }
+# }
+
+### 13. Obtener Sesión (COMENTADO - Requiere Redis)
+# GET {{host}}/api/session/test-session-123
+
+### 14. Validar Sesión (COMENTADO - Requiere Redis)
+# GET {{host}}/api/session/test-session-123/validate
+
+### 15. Eliminar Sesión (COMENTADO - Requiere Redis)
+# DELETE {{host}}/api/session/test-session-123
