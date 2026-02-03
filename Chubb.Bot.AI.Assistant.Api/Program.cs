@@ -119,7 +119,7 @@ var httpClientConfig = builder.Configuration.GetSection("HttpClients");
 // QuoteBot Client
 builder.Services.AddHttpClient<IQuoteBotClient, QuoteBotClient>(client =>
 {
-    var baseUrl = httpClientConfig["QuoteBot:BaseUrl"] ?? "http://localhost:5266";
+    var baseUrl = httpClientConfig.GetValue<string>("QuoteBot:BaseUrl") ?? "http://localhost:5266";
     client.BaseAddress = new Uri(baseUrl);
 })
 .AddHttpMessageHandler<CorrelationIdDelegatingHandler>()
@@ -133,7 +133,7 @@ builder.Services.AddHttpClient<IQuoteBotClient, QuoteBotClient>(client =>
 // FAQBot Client
 builder.Services.AddHttpClient<IFAQBotClient, FAQBotClient>(client =>
 {
-    var baseUrl = httpClientConfig["FAQBot:BaseUrl"] ?? "http://localhost:5267";
+    var baseUrl = httpClientConfig.GetValue<string>("FAQBot:BaseUrl") ?? "http://localhost:5267";
     client.BaseAddress = new Uri(baseUrl);
 })
 .AddHttpMessageHandler<CorrelationIdDelegatingHandler>()
@@ -147,7 +147,7 @@ builder.Services.AddHttpClient<IFAQBotClient, FAQBotClient>(client =>
 // Speech Service Client
 builder.Services.AddHttpClient<ISpeechClient, SpeechClient>(client =>
 {
-    var baseUrl = httpClientConfig["SpeechService:BaseUrl"] ?? "http://localhost:7001";
+    var baseUrl = httpClientConfig.GetValue<string>("SpeechService:BaseUrl") ?? "http://localhost:7001";
     client.BaseAddress = new Uri(baseUrl);
 })
 .AddHttpMessageHandler<CorrelationIdDelegatingHandler>()
@@ -161,9 +161,9 @@ builder.Services.AddHttpClient<ISpeechClient, SpeechClient>(client =>
 // Health Checks
 builder.Services.AddHealthChecks()
     .AddCheck<RedisHealthCheck>("redis", tags: new[] { "db", "redis" })
-    .AddUrlGroup(new Uri($"{httpClientConfig["QuoteBot:BaseUrl"] ?? "http://localhost:5266"}/health"), "quotebot", tags: new[] { "external" })
-    .AddUrlGroup(new Uri($"{httpClientConfig["FAQBot:BaseUrl"] ?? "http://localhost:5267"}/health"), "faqbot", tags: new[] { "external" })
-    .AddUrlGroup(new Uri($"{httpClientConfig["SpeechService:BaseUrl"] ?? "http://localhost:7001"}/health"), "speechservice", tags: new[] { "external" });
+    .AddUrlGroup(new Uri($"{httpClientConfig.GetValue<string>("QuoteBot:BaseUrl") ?? "http://localhost:5266"}/health"), "quotebot", tags: new[] { "external" })
+    .AddUrlGroup(new Uri($"{httpClientConfig.GetValue<string>("FAQBot:BaseUrl") ?? "http://localhost:5267"}/health"), "faqbot", tags: new[] { "external" })
+    .AddUrlGroup(new Uri($"{httpClientConfig.GetValue<string>("SpeechService:BaseUrl") ?? "http://localhost:7001"}/health"), "speechservice", tags: new[] { "external" });
 
 var app = builder.Build();
 
