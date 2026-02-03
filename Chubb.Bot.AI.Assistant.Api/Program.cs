@@ -1,3 +1,4 @@
+using AspNetCoreRateLimit;
 using Chubb.Bot.AI.Assistant.Api.Middleware;
 using Chubb.Bot.AI.Assistant.Application.Validators;
 using Chubb.Bot.AI.Assistant.Infrastructure.HealthChecks;
@@ -8,16 +9,33 @@ using Chubb.Bot.AI.Assistant.Infrastructure.Policies;
 using Chubb.Bot.AI.Assistant.Infrastructure.Redis;
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Serilog;
+using Serilog.Context;
 using System.Text;
+
+// Configurar Serilog desde appsettings.json
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(new ConfigurationBuilder()
+        .SetBasePath(Directory.GetCurrentDirectory())
+        .AddJsonFile("appsettings.json")
+        .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json", optional: true)
+        .Build())
+    .CreateLogger();
+
+try
+{
+    Log.Information("Starting Chubb Bot AI Assistant API");
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Serilog Configuration
-// Note: Serilog se puede configurar aquí o en appsettings.json
-// Para este ejemplo, se asume configuración desde appsettings.json
+// Agregar Serilog
+builder.Host.UseSerilog();
 
 // Controllers
 builder.Services.AddControllers();
@@ -102,12 +120,33 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.InstanceName = builder.Configuration["RedisSettings:InstanceName"] ?? "BFF:";
 });
 
+// Session Management con Redis
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(builder.Configuration.GetValue<int>("RedisSettings:DefaultTTLMinutes", 30));
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.SameSite = SameSiteMode.Strict;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+});
+
+// Rate Limiting
+builder.Services.AddMemoryCache();
+builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimiting"));
+builder.Services.Configure<IpRateLimitPolicies>(builder.Configuration.GetSection("IpRateLimitPolicies"));
+builder.Services.Configure<ClientRateLimitOptions>(builder.Configuration.GetSection("ClientRateLimiting"));
+builder.Services.AddInMemoryRateLimiting();
+builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
+
 // FluentValidation
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<ChatRequestValidator>();
 
 // HttpContextAccessor (needed for CorrelationIdDelegatingHandler)
 builder.Services.AddHttpContextAccessor();
+
+// Session Service
+builder.Services.AddScoped<Chubb.Bot.AI.Assistant.Infrastructure.Services.Interfaces.ISessionService, Chubb.Bot.AI.Assistant.Infrastructure.Services.SessionService>();
 
 // Delegating Handlers
 builder.Services.AddTransient<CorrelationIdDelegatingHandler>();
@@ -160,30 +199,104 @@ builder.Services.AddHttpClient<ISpeechClient, SpeechClient>(client =>
 
 // Health Checks
 builder.Services.AddHealthChecks()
-    .AddCheck<RedisHealthCheck>("redis", tags: new[] { "db", "redis" })
-    .AddUrlGroup(new Uri($"{httpClientConfig.GetValue<string>("QuoteBot:BaseUrl") ?? "http://localhost:5266"}/health"), "quotebot", tags: new[] { "external" })
-    .AddUrlGroup(new Uri($"{httpClientConfig.GetValue<string>("FAQBot:BaseUrl") ?? "http://localhost:5267"}/health"), "faqbot", tags: new[] { "external" })
-    .AddUrlGroup(new Uri($"{httpClientConfig.GetValue<string>("SpeechService:BaseUrl") ?? "http://localhost:7001"}/health"), "speechservice", tags: new[] { "external" });
+    .AddCheck<RedisHealthCheck>("redis", tags: new[] { "db", "redis", "ready" })
+    .AddCheck("self", () => HealthCheckResult.Healthy("API is running"), tags: new[] { "ready" })
+    .AddUrlGroup(
+        new Uri($"{httpClientConfig.GetValue<string>("QuoteBot:BaseUrl") ?? "http://localhost:5266"}/health"),
+        name: "quotebot",
+        failureStatus: HealthStatus.Degraded,
+        tags: new[] { "external", "services" },
+        timeout: TimeSpan.FromSeconds(5))
+    .AddUrlGroup(
+        new Uri($"{httpClientConfig.GetValue<string>("FAQBot:BaseUrl") ?? "http://localhost:5267"}/health"),
+        name: "faqbot",
+        failureStatus: HealthStatus.Degraded,
+        tags: new[] { "external", "services" },
+        timeout: TimeSpan.FromSeconds(5))
+    .AddUrlGroup(
+        new Uri($"{httpClientConfig.GetValue<string>("SpeechService:BaseUrl") ?? "http://localhost:7001"}/health"),
+        name: "speechservice",
+        failureStatus: HealthStatus.Degraded,
+        tags: new[] { "external", "services" },
+        timeout: TimeSpan.FromSeconds(5));
 
 var app = builder.Build();
 
 // Middleware Pipeline
+
+// Serilog Request Logging
+app.UseSerilogRequestLogging(options =>
+{
+    options.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms";
+    options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+    {
+        diagnosticContext.Set("RequestHost", httpContext.Request.Host.Value);
+        diagnosticContext.Set("RequestScheme", httpContext.Request.Scheme);
+        diagnosticContext.Set("UserAgent", httpContext.Request.Headers["User-Agent"].ToString());
+
+        if (httpContext.Items.TryGetValue("CorrelationId", out var correlationId))
+        {
+            diagnosticContext.Set("CorrelationId", correlationId);
+        }
+    };
+});
+
+// Custom Exception Handling
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseMiddleware<CorrelationIdMiddleware>();
+
+// Rate Limiting
+app.UseIpRateLimiting();
 
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "BFF API V1");
+        c.RoutePrefix = "swagger";
+    });
 }
 
 app.UseHttpsRedirection();
 
 app.UseCors();
 
+// Session Management
+app.UseSession();
+
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Health Check Endpoints
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    Predicate = _ => true,
+    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+});
+
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready"),
+    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+});
+
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = _ => false,
+    ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+});
 
 app.MapControllers();
 
 app.Run();
+
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Application terminated unexpectedly");
+}
+finally
+{
+    Log.CloseAndFlush();
+}

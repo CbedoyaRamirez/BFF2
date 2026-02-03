@@ -6,4 +6,5 @@ public class ErrorResponse
     public string Message { get; set; } = string.Empty;
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
     public string? TraceId { get; set; }
+    public List<string>? Details { get; set; }
 }
