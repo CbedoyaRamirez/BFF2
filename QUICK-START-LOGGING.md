@@ -1,16 +1,22 @@
 # Quick Start - Sistema de Logging
 
-## ✅ Solución Implementada
+## ✅ Solución Implementada y Corregida
 
-El sistema de logging ahora escribe en **4 carpetas separadas**:
+El sistema de logging ahora escribe en **4 carpetas separadas** con **filtros correctos**:
 
 ```
 logs/
-├── app-YYYYMMDD.log              # Logs generales
-├── error/error-YYYYMMDD.log      # Solo errores (Error y Fatal)
-├── performance/performance-YYYYMMDD.log  # Métricas de rendimiento
-└── dev/dev-YYYYMMDD.log          # Logs de desarrollo
+├── app-YYYYMMDD.log              # TODOS los logs (general)
+├── error/error-YYYYMMDD.log      # SOLO Error y Fatal
+├── performance/performance-YYYYMMDD.log  # SOLO logs de performance
+└── dev/dev-YYYYMMDD.log          # SOLO logs de desarrollo
 ```
+
+### 🔧 Filtros Corregidos:
+- ✅ **logs/error/** - Solo logs con `@Level = 'Error' or @Level = 'Fatal'`
+- ✅ **logs/performance/** - Solo logs con `@Properties['Category'] = 'Performance'`
+- ✅ **logs/dev/** - Solo logs con `@Properties['DevLog'] = true`
+- ✅ **NO** hay logs de Information en logs/error/
 
 ## 🚀 Cómo Verificar que Funciona
 
@@ -69,40 +75,59 @@ tail -f Chubb.Bot.AI.Assistant.Api/logs/error/error-*.log
 
 ## 📝 Cómo Usar en Tu Código
 
-### 1. Agregar el using
+### Opción 1: ILogger (Logs generales - Recomendado)
+
+```csharp
+// Inyectar ILogger en el constructor
+private readonly ILogger<MyController> _logger;
+
+public MyController(ILogger<MyController> logger)
+{
+    _logger = logger;
+}
+
+// Usar en tu código
+_logger.LogInformation("User {UserId} logged in", userId);  // → logs/app-.log
+_logger.LogWarning("Cache expired");                         // → logs/app-.log
+_logger.LogError(exception, "Error processing");             // → logs/app-.log Y logs/error/
+```
+
+**✅ Usa ILogger para la mayoría de logs**
+
+### Opción 2: LoggingHelper (Casos especiales)
+
 ```csharp
 using Chubb.Bot.AI.Assistant.Api.Helpers;
-```
 
-### 2. Log de Error
-```csharp
+// 1. Error que DEBE ir a logs/error/
 try {
-    // tu código
+    // código
 }
 catch (Exception ex) {
-    LoggingHelper.LogError("Error description", ex);
+    LoggingHelper.LogError("Error description", ex);  // → logs/error/ Y logs/app-.log
 }
-```
 
-### 3. Log de Performance
-```csharp
+// 2. Medir performance
 using (LoggingHelper.LogPerformance("OperationName"))
 {
-    // código a medir
+    // código a medir  // → logs/performance/ (solo)
 }
+
+// 3. Logs de desarrollo
+LoggingHelper.LogDevelopment("Debug info: {Value}", value);  // → logs/dev/ (solo)
 ```
 
-### 4. Log de Desarrollo
-```csharp
-LoggingHelper.LogDevelopment("Debug info: {Value}", value);
-```
+**✅ Usa LoggingHelper solo para casos especiales**
 
 ## 📚 Documentación Completa
 
 Ver los siguientes archivos para más detalles:
 
-1. **`LOGGING-SOLUTION.md`** - Resumen ejecutivo de la solución
-2. **`LOGGING-GUIDE.md`** - Guía completa con ejemplos y best practices
+1. **`VERIFICAR-FILTROS-LOGS.md`** - **IMPORTANTE** - Cómo verificar que los filtros funcionan
+2. **`SERILOG-VS-ILOGGER.md`** - Diferencia entre Serilog e ILogger (cuándo usar cada uno)
+3. **`LOGGING-SOLUTION.md`** - Resumen ejecutivo de la solución
+4. **`LOGGING-GUIDE.md`** - Guía completa con ejemplos y best practices
+5. **`TEST-LOGGING.md`** - Guía de pruebas del sistema
 
 ## 🔧 Archivos Modificados
 
@@ -117,12 +142,14 @@ Ver los siguientes archivos para más detalles:
 
 ## ✨ Características
 
-✅ Logs de error automáticos en `logs/error/`
-✅ Logs de performance con medición de tiempo en `logs/performance/`
-✅ Logs de desarrollo para debugging en `logs/dev/`
+✅ **Filtros corregidos** - Solo errores en logs/error/, solo performance en logs/performance/
+✅ Logs de error automáticos en `logs/error/` (SOLO Error y Fatal)
+✅ Logs de performance con medición de tiempo en `logs/performance/` (SOLO performance)
+✅ Logs de desarrollo para debugging en `logs/dev/` (SOLO development)
 ✅ Carpetas creadas automáticamente al iniciar
 ✅ Rotación diaria de archivos
 ✅ Retención configurable (30/90/7 días)
+✅ ILogger es suficiente para la mayoría de casos
 ✅ Compilación exitosa verificada
 
 ## 🎯 Próximos Pasos

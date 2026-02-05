@@ -25,4 +25,8 @@
     <ProjectReference Include="..\Chubb.Bot.AI.Assistant.Infrastructure\Chubb.Bot.AI.Assistant.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="logs\" />
+  </ItemGroup>
+
 </Project>
