@@ -11,23 +11,87 @@ public static class LoggingHelper
 {
     /// <summary>
     /// Inicializa las carpetas de logs al iniciar la aplicación
+    /// IMPORTANTE: Debe llamarse DESPUÉS de configurar Serilog
     /// </summary>
     public static void InitializeLogDirectories()
     {
-        var logDirectories = new[]
+        try
         {
-            "logs",
-            "logs/error",
-            "logs/performance",
-            "logs/dev"
-        };
+            var currentDir = Directory.GetCurrentDirectory();
+            Console.WriteLine($"[INIT] Current directory: {currentDir}");
 
-        foreach (var directory in logDirectories)
-        {
-            if (!Directory.Exists(directory))
+            var baseDir = "logs";
+            var baseDirFullPath = Path.Combine(currentDir, baseDir);
+
+            // 1. Verificar/Crear directorio base 'logs'
+            if (!Directory.Exists(baseDirFullPath))
             {
-                Directory.CreateDirectory(directory);
-                Log.Information("Created log directory: {Directory}", directory);
+                Console.WriteLine($"[INIT] Creating base log directory: {baseDirFullPath}");
+                Directory.CreateDirectory(baseDirFullPath);
+                Console.WriteLine($"[INIT] ✓ Created: {baseDirFullPath}");
+            }
+            else
+            {
+                Console.WriteLine($"[INIT] Base log directory exists: {baseDirFullPath}");
+            }
+
+            // 2. Si logs existe, validar y crear subcarpetas
+            if (Directory.Exists(baseDirFullPath))
+            {
+                var subDirectories = new[] { "error", "performance", "dev" };
+
+                foreach (var subDir in subDirectories)
+                {
+                    var fullPath = Path.Combine(baseDirFullPath, subDir);
+
+                    try
+                    {
+                        if (!Directory.Exists(fullPath))
+                        {
+                            Console.WriteLine($"[INIT] Creating subdirectory: {fullPath}");
+                            Directory.CreateDirectory(fullPath);
+                            Console.WriteLine($"[INIT] ✓ Created: logs\\{subDir}");
+
+                            if (Log.Logger != null)
+                            {
+                                Log.Information("Created log subdirectory: {SubDirectory}", subDir);
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine($"[INIT] ✓ Exists: logs\\{subDir}");
+                        }
+                    }
+                    catch (Exception subEx)
+                    {
+                        Console.WriteLine($"[INIT] ✗ Error creating logs\\{subDir}: {subEx.Message}");
+                        if (Log.Logger != null)
+                        {
+                            Log.Error(subEx, "Failed to create log subdirectory: {SubDirectory}", subDir);
+                        }
+                    }
+                }
+
+                // 3. Verificar resultado final
+                Console.WriteLine($"[INIT] Verification - Directory structure:");
+                Console.WriteLine($"[INIT]   logs\\ - {(Directory.Exists(baseDirFullPath) ? "✓" : "✗")}");
+                Console.WriteLine($"[INIT]   logs\\error\\ - {(Directory.Exists(Path.Combine(baseDirFullPath, "error")) ? "✓" : "✗")}");
+                Console.WriteLine($"[INIT]   logs\\performance\\ - {(Directory.Exists(Path.Combine(baseDirFullPath, "performance")) ? "✓" : "✗")}");
+                Console.WriteLine($"[INIT]   logs\\dev\\ - {(Directory.Exists(Path.Combine(baseDirFullPath, "dev")) ? "✓" : "✗")}");
+            }
+            else
+            {
+                Console.WriteLine($"[INIT] ✗ CRITICAL: Base log directory could not be created!");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[INIT] ✗ CRITICAL ERROR in InitializeLogDirectories: {ex.Message}");
+            Console.WriteLine($"[INIT] Stack trace: {ex.StackTrace}");
+
+            if (Log.Logger != null)
+            {
+                Log.Fatal(ex, "Critical error initializing log directories");
             }
         }
     }

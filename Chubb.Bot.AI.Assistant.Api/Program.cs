@@ -22,9 +22,6 @@ using Serilog.Expressions;
 using System.Text;
 using System.Threading.RateLimiting;
 
-// Inicializar directorios de logs
-LoggingHelper.InitializeLogDirectories();
-
 // Configurar Serilog desde appsettings.json
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(new ConfigurationBuilder()
@@ -33,6 +30,9 @@ Log.Logger = new LoggerConfiguration()
         .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json", optional: true)
         .Build())
     .CreateLogger();
+
+// Inicializar directorios de logs DESPUÉS de configurar Serilog
+LoggingHelper.InitializeLogDirectories();
 
 try
 {
