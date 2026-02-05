@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using Chubb.Bot.AI.Assistant.Api.Helpers;
 using Chubb.Bot.AI.Assistant.Application.DTOs.Common;
 using Chubb.Bot.AI.Assistant.Core.Exceptions;
 using FluentValidation;
@@ -63,22 +64,44 @@ public class ExceptionHandlingMiddleware
                     errorResponse.Details = validationException.Errors
                         .Select(e => $"{e.PropertyName}: {e.ErrorMessage}")
                         .ToList();
+
+                    // Log de warning (no se escribe en error/ porque no es un error crítico)
                     _logger.LogWarning(validationException, "Validation error on {Path}", requestPath);
+
+                    // Log de desarrollo para debugging
+                    LoggingHelper.LogDevelopmentWarning(
+                        "Validation failed on {Path}: {Errors}",
+                        requestPath,
+                        string.Join(", ", errorResponse.Details ?? new List<string>()));
                     break;
 
                 case BusinessException businessException:
                     statusCode = businessException.StatusCode;
                     errorResponse.ErrorCode = businessException.ErrorCode;
                     errorResponse.Message = businessException.Message;
+
+                    // Business exceptions son warnings, no errors críticos
                     _logger.LogWarning(businessException, "Business exception: {ErrorCode} - {Message}",
                         businessException.ErrorCode, businessException.Message);
+
+                    LoggingHelper.LogDevelopmentWarning(
+                        "Business exception on {Path}: {ErrorCode} - {Message}",
+                        requestPath,
+                        businessException.ErrorCode,
+                        businessException.Message);
                     break;
 
                 case UnauthorizedAccessException:
                     statusCode = (int)HttpStatusCode.Unauthorized;
                     errorResponse.ErrorCode = "UNAUTHORIZED";
                     errorResponse.Message = "Unauthorized access";
+
                     _logger.LogWarning(exception, "Unauthorized access attempt on {Path}", requestPath);
+
+                    LoggingHelper.LogDevelopmentWarning(
+                        "Unauthorized access attempt on {Path} from IP: {RemoteIp}",
+                        requestPath,
+                        context.Connection.RemoteIpAddress?.ToString() ?? "Unknown");
                     break;
 
                 case TaskCanceledException:
@@ -86,7 +109,13 @@ public class ExceptionHandlingMiddleware
                     statusCode = (int)HttpStatusCode.RequestTimeout;
                     errorResponse.ErrorCode = "REQUEST_TIMEOUT";
                     errorResponse.Message = "The request was cancelled or timed out";
+
                     _logger.LogWarning("Request timeout on {Path}", requestPath);
+
+                    LoggingHelper.LogDevelopmentWarning(
+                        "Request timeout on {Method} {Path}",
+                        requestMethod,
+                        requestPath);
                     break;
 
                 default:
@@ -105,8 +134,31 @@ public class ExceptionHandlingMiddleware
                         };
                     }
 
-                    _logger.LogError(exception, "Unhandled exception on {Path}: {ExceptionType}",
-                        requestPath, exception.GetType().Name);
+                    // IMPORTANTE: Usar LoggingHelper.LogError para que se escriba en logs/error/
+                    LoggingHelper.LogError(
+                        "Unhandled exception on {Method} {Path}: {ExceptionType} - {Message}",
+                        exception,
+                        requestMethod,
+                        requestPath,
+                        exception.GetType().Name,
+                        exception.Message);
+
+                    // También log de desarrollo para debugging
+                    if (_environment.IsDevelopment())
+                    {
+                        LoggingHelper.LogDevelopmentObject(
+                            $"Exception details for {requestPath}",
+                            new
+                            {
+                                ExceptionType = exception.GetType().FullName,
+                                Message = exception.Message,
+                                StackTrace = exception.StackTrace,
+                                InnerException = exception.InnerException?.Message,
+                                RequestPath = requestPath.ToString(),
+                                RequestMethod = requestMethod,
+                                CorrelationId = correlationId
+                            });
+                    }
                     break;
             }
 
