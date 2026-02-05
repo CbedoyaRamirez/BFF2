@@ -14,7 +14,9 @@
       "Bash(del \"C:\\\\DocumentosCarlosBedoya\\\\Programacion\\\\Chubb\\\\BFF2\\\\Chubb.Bot.AI.Assistant.Api\\\\Controllers\\\\SessionController.cs\")",
       "Bash(dir)",
       "Bash(curl:*)",
-      "Bash(dotnet restore:*)"
+      "Bash(dotnet restore:*)",
+      "Bash(dir /s /b \"C:\\\\DocumentosCarlosBedoya\\\\Programacion\\\\Chubb\\\\BFF2\")",
+      "Bash(findstr:*)"
     ]
   }
 }

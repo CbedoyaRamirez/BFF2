@@ -1,3 +1,4 @@
+using Chubb.Bot.AI.Assistant.Api.Helpers;
 using Chubb.Bot.AI.Assistant.Api.Middleware;
 using Chubb.Bot.AI.Assistant.Application.Validators;
 using Chubb.Bot.AI.Assistant.Infrastructure.HealthChecks;
@@ -17,8 +18,12 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using Serilog.Context;
+using Serilog.Expressions;
 using System.Text;
 using System.Threading.RateLimiting;
+
+// Inicializar directorios de logs
+LoggingHelper.InitializeLogDirectories();
 
 // Configurar Serilog desde appsettings.json
 Log.Logger = new LoggerConfiguration()
@@ -32,6 +37,7 @@ Log.Logger = new LoggerConfiguration()
 try
 {
     Log.Information("Starting Chubb Bot AI Assistant API");
+    LoggingHelper.LogDevelopment("Application starting in {Environment} mode", Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production");
 
 var builder = WebApplication.CreateBuilder(args);
 
